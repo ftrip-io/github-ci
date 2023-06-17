@@ -1,0 +1,44 @@
+name: Run hadolint on Dockerfile
+
+inputs:
+  dockerfile:
+    required: true
+  output-file:
+    required: false
+    default: "hadolint-output"
+
+runs:
+  using: "composite"
+
+  steps:
+    - uses: hadolint/hadolint-action@v3.1.0
+      id: hadolint
+      with:
+        dockerfile: ${{ inputs.dockerfile }}
+        output-file: ${{ inputs.output-file }}
+
+    - name: Upload Hadolint artifact
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: Hadolint Output
+        path: ${{ inputs.output-file }}
+
+     - name: Update Pull Request
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request' && failure()
+      with:
+        script: |
+          const output = `
+          #### Hadolint: \`${{ steps.hadolint.outcome }}\`
+          \`\`\`
+          ${process.env.HADOLINT_RESULTS}
+          \`\`\`
+          `;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })

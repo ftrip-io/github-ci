@@ -1,0 +1,35 @@
+name: Run semantic-release
+
+inputs:
+  node-version:
+    required: false
+    default: "18"
+  github-token:
+    required: true
+
+outputs:
+  next-version:
+    description: "Next version computed by semantic release"
+    value: ${{ steps.get-next-version.outputs.next-version }}
+
+runs:
+  using: "composite"
+
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Get next semantic version
+      id: get-next-version
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: bash
+      run: |
+        echo "next-version=$(npx semantic-release --dry-run | grep 'The next release version is' | sed -E 's/.* ([[:digit:].]+)$/\1/')" >> $GITHUB_OUTPUT
+
+    - name: Create a new Release
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: bash
+      run: npx semantic-release

@@ -31,4 +31,5 @@ runs:
     - name: Create a new Release
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: bash
       run: npx semantic-release
